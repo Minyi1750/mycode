@@ -2,7 +2,9 @@
 # Purpose: 古籍PDF从中间切割，并重新组合
 # Author: MinYi
 # Create Time: 2021.09.04 17：15
+from msilib.schema import ControlCondition
 from PyPDF2 import PdfFileWriter, PdfFileReader
+from PyPDF2 import generic
 from copy import copy
 import sys
 
@@ -46,15 +48,35 @@ def op(input_file_path):
         # outputStream.addBookmark(s['/Title'], s['/Page']['/Contents'])
         flag = flag + 1
 
+    '''
+
+    '''
+
     # 添加书签
     # 二级书签如何添加？
     book_tag_info = []
     # 程序還需要改進
     ref = None
     for s in outlines:
+        # 能否从s的数据中判断父子书签的问题？
+        if isinstance(s, generic.Destination):
+            add_bookmark(input_stream, output_stream, s)
+        elif isinstance(s, list):
+            for i in s:
+                add_bookmark(input_stream, output_stream, i)
+        else:
+            print('outline type error')
+
+    with open(output_file_path, "wb") as output_file:
+        output_stream.write(output_file)
+
+    input_file.close()
+
+
+def add_bookmark(input_stream, output_stream, s):
         try:
             page_number = input_stream.getDestinationPageNumber(s) + 1
-            title = s.title
+            # title = s.title
             # book_tag_info.append(s.title, page_number)
             ref = output_stream.addBookmark(s.title, page_number*2 - 1)
         except Exception as e:
@@ -62,11 +84,6 @@ def op(input_file_path):
             for m in s:
                 page_number = input_stream._getPageNumberByIndirect(m.page)
                 output_stream.addBookmark(m.title, page_number*2, parent=ref)
-
-    with open(output_file_path, "wb") as output_file:
-        output_stream.write(output_file)
-
-    input_file.close()
 
 
 if __name__ == '__main__':
